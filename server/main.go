@@ -117,6 +117,7 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 
 			// Notify the other peer that someone joined so they can initiate the offer.
 			if other := room.other(conn); other != nil {
+				log.Printf("✅ both peers connected in room=%s — starting call", msg.RoomID)
 				other.WriteJSON(map[string]string{"type": "peer_joined"})
 			}
 

@@ -15,9 +15,11 @@ class _CallPageState extends State<CallPage> {
   final _localRenderer = RTCVideoRenderer();
   final _remoteRenderer = RTCVideoRenderer();
   final _roomController = TextEditingController(text: 'room1');
+  final _serverController = TextEditingController(text: '10.0.2.2:8080');
 
   Signaling? _signaling;
   bool _inCall = false;
+  String _status = 'idle';
 
   @override
   Future<void> didChangeDependencies() async {
@@ -35,9 +37,13 @@ class _CallPageState extends State<CallPage> {
   }
 
   Future<void> _join() async {
-    final s = Signaling('ws://10.0.2.2:8080/ws', _roomController.text.trim());
+    final host = _serverController.text.trim();
+    final s = Signaling('ws://$host/ws', _roomController.text.trim());
     s.onRemoteStream = (stream) =>
         setState(() => _remoteRenderer.srcObject = stream);
+    s.onConnectionState = (state) {
+      setState(() => _status = state.toString().split('.').last);
+    };
 
     await s.openUserMedia(_localRenderer);
     await s.connect();
@@ -53,6 +59,7 @@ class _CallPageState extends State<CallPage> {
     setState(() {
       _signaling = null;
       _inCall = false;
+      _status = 'idle';
       _localRenderer.srcObject = null;
       _remoteRenderer.srcObject = null;
     });
@@ -61,7 +68,7 @@ class _CallPageState extends State<CallPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('WebRTC Call')),
+      appBar: AppBar(title: Text('WebRTC Call — $_status')),
       body: Column(
         children: [
           Expanded(
@@ -76,6 +83,14 @@ class _CallPageState extends State<CallPage> {
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
+                Expanded(
+                  child: TextField(
+                    controller: _serverController,
+                    decoration: const InputDecoration(labelText: 'Server (host:port)'),
+                    enabled: !_inCall,
+                  ),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: TextField(
                     controller: _roomController,
